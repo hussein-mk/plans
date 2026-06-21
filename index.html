@@ -1,77 +1,564 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>مولد الخطط القرآنية</title>
+    <title>مولد الخطط القرآنية</title>
 
-<style>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            margin: 0;
+        }
 
-body{
-font-family:Tahoma,sans-serif;
-background:#f5f7fa;
-padding:20px;
-margin:0;
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, .1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #0d6efd;
+        }
+
+        .section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #0d6efd;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #0d6efd;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0b5ed7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .summary {
+            background: #eef5ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>مولد الخطط القرآنية</h1>
+
+        <div class="section">
+
+            <div class="section-title">
+                بيانات الطالب
+            </div>
+
+            <div class="row">
+
+                <div>
+                    <label>اسم الطالب</label>
+                    <input id="student">
+                </div>
+
+                <div>
+                    <label>عدد الأيام</label>
+                    <input id="daysCount" type="number" value="5">
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="section">
+
+            <div class="section-title">
+                الحفظ
+            </div>
+
+            <div class="row">
+
+                <div>
+                    <label>السورة</label>
+                    <select id="hifzSurah"></select>
+                </div>
+
+                <div>
+                    <label>آية البداية</label>
+                    <input id="hifzAyah" type="number" value="1">
+                </div>
+
+                <div>
+                    <label>عدد الأوجه</label>
+                    <input id="hifzFaces" type="number" value="1">
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="section">
+
+            <div class="section-title">
+                التثبيت
+            </div>
+
+            <div class="row">
+
+                <div>
+                    <label>السورة</label>
+                    <select id="tasbeetSurah"></select>
+                </div>
+
+                <div>
+                    <label>آية البداية</label>
+                    <input id="tasbeetAyah" type="number" value="1">
+                </div>
+
+                <div>
+                    <label>عدد الأوجه</label>
+                    <input id="tasbeetFaces" type="number" value="4">
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="section">
+
+            <div class="section-title">
+                المراجعة
+            </div>
+
+            <div class="row">
+
+                <div>
+                    <label>السورة</label>
+                    <select id="reviewSurah"></select>
+                </div>
+
+                <div>
+                    <label>آية البداية</label>
+                    <input id="reviewAyah" type="number" value="1">
+                </div>
+
+                <div>
+                    <label>عدد الأوجه</label>
+                    <input id="reviewFaces" type="number" value="10">
+                </div>
+
+            </div>
+
+        </div>
+
+        <button onclick="generatePlan()">
+            إنشاء الخطة
+        </button>
+
+        <div id="result"></div>
+
+    </div>
+
+    <script>
+
+        let quranData = [];
+
+        fetch("quran-data.json")
+            .then(r => r.json())
+            .then(data => {
+
+                quranData = data;
+
+                const surahs =
+                    [...new Set(
+                        data.map(x => x.sura_name_ar)
+                    )];
+
+                fillSurahs(
+                    "hifzSurah",
+                    surahs
+                );
+
+                fillSurahs(
+                    "tasbeetSurah",
+                    surahs
+                );
+
+                fillSurahs(
+                    "reviewSurah",
+                    surahs
+                );
+
+            })
+            .catch(err => {
+
+                document.getElementById("result").innerHTML =
+                    '<div class="loading">تعذر تحميل quran-data.json</div>';
+
+            });
+
+        function fillSurahs(id, list) {
+
+            const select =
+                document.getElementById(id);
+
+            list.forEach(name => {
+
+                const option =
+                    document.createElement("option");
+
+                option.value = name;
+                option.textContent = name;
+
+                select.appendChild(option);
+
+            });
+
+        }
+
+        function getAya(
+            surah,
+            ayah
+        ) {
+
+            return quranData.find(
+                x =>
+                    x.sura_name_ar === surah &&
+                    x.aya_no === ayah
+            );
+
+        }
+
+        function getLastAyaInSurah(
+            surah
+        ) {
+
+            const ayat =
+                quranData.filter(
+                    x => x.sura_name_ar === surah
+                );
+
+            return ayat[ayat.length - 1];
+
+        }
+
+function calculateRange(
+surah,
+startAyah,
+faces
+){
+
+const surahAyat =
+quranData.filter(
+x => x.sura_name_ar === surah
+);
+
+const startIndex =
+surahAyat.findIndex(
+x => Number(x.aya_no) === Number(startAyah)
+);
+
+if(startIndex === -1){
+
+return null;
+
 }
 
-.container{
-max-width:1200px;
-margin:auto;
-background:#fff;
-padding:20px;
-border-radius:15px;
-box-shadow:0 0 15px rgba(0,0,0,.1);
+const startRecord =
+surahAyat[startIndex];
+
+const targetPage =
+startRecord.page + (faces / 2);
+
+let endRecord =
+startRecord;
+
+for(
+let i = startIndex;
+i < surahAyat.length;
+i++
+){
+
+if(
+surahAyat[i].page <= targetPage
+){
+endRecord = surahAyat[i];
+}else{
+break;
 }
 
-h1{
-text-align:center;
-color:#0d6efd;
 }
 
-.section{
-border:1px solid #ddd;
-padding:15px;
-border-radius:10px;
-margin-bottom:20px;
+return {
+
+start:startRecord.aya_no,
+end:endRecord.aya_no,
+
+nextAyah:
+endRecord.aya_no + 1,
+
+finished:
+endRecord.aya_no ===
+surahAyat[surahAyat.length - 1].aya_no
+
+};
+
 }
 
-.section-title{
-font-size:20px;
-font-weight:bold;
-margin-bottom:15px;
-color:#0d6efd;
+        function generatePlan() {
+
+            if (!quranData.length) {
+
+                alert("انتظر تحميل ملف القرآن");
+
+                return;
+
+            }
+
+            const student =
+                document.getElementById("student").value;
+
+            const days =
+                parseInt(
+                    document.getElementById("daysCount").value
+                );
+
+            const hifzSurah =
+                document.getElementById("hifzSurah").value;
+
+            let hifzAyah =
+                parseInt(
+                    document.getElementById("hifzAyah").value
+                );
+
+            const hifzFaces =
+                parseFloat(
+                    document.getElementById("hifzFaces").value
+                );
+
+            const tasbeetSurah =
+                document.getElementById("tasbeetSurah").value;
+
+            let tasbeetAyah =
+                parseInt(
+                    document.getElementById("tasbeetAyah").value
+                );
+
+            const tasbeetFaces =
+                parseFloat(
+                    document.getElementById("tasbeetFaces").value
+                );
+
+            const reviewSurah =
+                document.getElementById("reviewSurah").value;
+
+            let reviewAyah =
+                parseInt(
+                    document.getElementById("reviewAyah").value
+                );
+
+            const reviewFaces =
+                parseFloat(
+                    document.getElementById("reviewFaces").value
+                );
+
+            const daysNames = [
+                "الأحد",
+                "الاثنين",
+                "الثلاثاء",
+                "الأربعاء",
+                "الخميس",
+                "الجمعة",
+                "السبت"
+            ];
+
+            let html = `
+
+<div class="summary">
+<h3>الخطة القرآنية</h3>
+<p>الطالب: ${student}</p>
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>اليوم</th>
+<th>الحفظ</th>
+<th>التثبيت</th>
+<th>المراجعة</th>
+</tr>
+</thead>
+
+<tbody>
+`;
+
+            for (let i = 0; i < days; i++) {
+
+                const hifz =
+                    calculateRange(
+                        hifzSurah,
+                        hifzAyah,
+                        hifzFaces
+                    );
+
+                const tasbeet =
+                    calculateRange(
+                        tasbeetSurah,
+                        tasbeetAyah,
+                        tasbeetFaces
+                    );
+
+                const review =
+                    calculateRange(
+                        reviewSurah,
+                        reviewAyah,
+                        reviewFaces
+                    );
+
+                html += `
+
+<tr>
+
+<td>
+${daysNames[i % 7]}
+</td>
+
+<td>
+${hifzSurah}
+<br>
+${hifz.start}
+-
+${hifz.end}
+</td>
+
+<td>
+${tasbeetSurah}
+<br>
+${tasbeet.start}
+-
+${tasbeet.end}
+</td>
+
+<td>
+${reviewSurah}
+<br>
+${review.start}
+-
+${review.end}
+</td>
+
+</tr>
+
+`;
+
+               if(!hifz.finished){
+hifzAyah = hifz.nextAyah;
 }
 
-.row{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-gap:15px;
+if(!tasbeet.finished){
+tasbeetAyah = tasbeet.nextAyah;
 }
 
-label{
-display:block;
-margin-bottom:5px;
-font-weight:bold;
+if(!review.finished){
+reviewAyah = review.nextAyah;
 }
 
-input,select{
-width:100%;
-padding:10px;
-border:1px solid #ccc;
-border-radius:8px;
-box-sizing:border-box;
-}
+            }
 
-button{
-width:100%;
-padding:15px;
-border:none;
-border-radius:10px;
-background:#0d6efd;
-color:white;
-font-size:18px;
-cursor:pointer;
+            html += `
+</tbody>
+</table>
+`;
+
+            document.getElementById("result").innerHTML =
+                html;
+
+        }
+
+    </script>
+
+</body>
+
+</html>
+
+
+
+
+
+calculateRange
+
+hifzAyahcursor:pointer;
 }
 
 button:hover{
