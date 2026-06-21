@@ -1,38 +1,48 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>مولد الخطط القرآنية</title>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <style>
+
+:root{
+--primary:#0d6efd;
+--bg:#f5f7fa;
+}
 
 body{
 font-family:Tahoma,sans-serif;
-background:#f5f7fa;
-padding:20px;
+background:var(--bg);
 margin:0;
+padding:20px;
 }
 
 .container{
-max-width:1200px;
+max-width:1400px;
 margin:auto;
 background:#fff;
 padding:20px;
 border-radius:15px;
-box-shadow:0 0 15px rgba(0,0,0,.1);
+box-shadow:0 0 15px rgba(0,0,0,.08);
 }
 
 h1{
 text-align:center;
-color:#0d6efd;
+color:var(--primary);
+margin-bottom:25px;
 }
 
 .section{
 border:1px solid #ddd;
-padding:15px;
 border-radius:10px;
+padding:15px;
 margin-bottom:20px;
 }
 
@@ -40,7 +50,7 @@ margin-bottom:20px;
 font-size:20px;
 font-weight:bold;
 margin-bottom:15px;
-color:#0d6efd;
+color:var(--primary);
 }
 
 .row{
@@ -55,7 +65,8 @@ margin-bottom:5px;
 font-weight:bold;
 }
 
-input,select{
+input,
+select{
 width:100%;
 padding:10px;
 border:1px solid #ccc;
@@ -68,14 +79,14 @@ width:100%;
 padding:15px;
 border:none;
 border-radius:10px;
-background:#0d6efd;
+background:var(--primary);
 color:white;
 font-size:18px;
 cursor:pointer;
 }
 
 button:hover{
-background:#0b5ed7;
+opacity:.9;
 }
 
 table{
@@ -91,7 +102,7 @@ text-align:center;
 }
 
 th{
-background:#0d6efd;
+background:var(--primary);
 color:white;
 }
 
@@ -104,12 +115,20 @@ margin-top:20px;
 
 .loading{
 text-align:center;
+padding:30px;
+font-size:18px;
 color:#666;
-padding:20px;
+}
+
+#pdfBtn{
+display:none;
+margin-top:15px;
 }
 
 </style>
+
 </head>
+
 <body>
 
 <div class="container">
@@ -130,8 +149,8 @@ padding:20px;
 </div>
 
 <div>
-<label>عدد الأيام</label>
-<input id="daysCount" type="number" value="5">
+<label>عدد أيام الخطة</label>
+<input id="daysCount" type="number" value="30">
 </div>
 
 </div>
@@ -157,8 +176,8 @@ padding:20px;
 </div>
 
 <div>
-<label>عدد الأوجه</label>
-<input id="hifzFaces" type="number" value="1">
+<label>عدد الأوجه يومياً</label>
+<input id="hifzFaces" type="number" step="0.5" value="1">
 </div>
 
 </div>
@@ -184,8 +203,8 @@ padding:20px;
 </div>
 
 <div>
-<label>عدد الأوجه</label>
-<input id="tasbeetFaces" type="number" value="4">
+<label>عدد الأوجه يومياً</label>
+<input id="tasbeetFaces" type="number" step="0.5" value="5">
 </div>
 
 </div>
@@ -211,8 +230,8 @@ padding:20px;
 </div>
 
 <div>
-<label>عدد الأوجه</label>
-<input id="reviewFaces" type="number" value="10">
+<label>عدد الأوجه يومياً</label>
+<input id="reviewFaces" type="number" step="0.5" value="10">
 </div>
 
 </div>
@@ -223,150 +242,294 @@ padding:20px;
 إنشاء الخطة
 </button>
 
-<div id="result"></div>
+<button id="pdfBtn">
+تحميل PDF
+</button>
+
+<div id="result">
+<div class="loading">
+جاري تحميل القرآن...
+</div>
+</div>
 
 </div>
 
 <script>
 
 let quranData = [];
+let ayahIndexMap = {};
+
+const LINES_PER_PAGE = 15;
+const LINES_PER_FACE = 7.5;
 
 fetch("quran-data.json")
-.then(r => r.json())
-.then(data => {
+.then(r=>r.json())
+.then(data=>{
 
-quranData = data;
-
-const surahs =
-[...new Set(
-data.map(x => x.sura_name_ar)
-)];
-
-fillSurahs(
-"hifzSurah",
-surahs
+quranData = data.sort(
+(a,b)=>a.id-b.id
 );
 
-fillSurahs(
-"tasbeetSurah",
-surahs
-);
+buildIndex();
+fillSurahLists();
 
-fillSurahs(
-"reviewSurah",
-surahs
-);
+document.getElementById("result").innerHTML =
+'<div class="loading">تم تحميل بيانات القرآن بنجاح</div>';
 
 })
-.catch(err => {
+.catch(err=>{
 
-document.getElementById("result").innerHTML=
+console.error(err);
+
+document.getElementById("result").innerHTML =
 '<div class="loading">تعذر تحميل quran-data.json</div>';
 
 });
 
-function fillSurahs(id,list){
+function buildIndex(){
+
+quranData.forEach((aya,index)=>{
+
+ayahIndexMap[
+`${aya.sura_no}-${aya.aya_no}`
+] = index;
+
+});
+
+}
+
+function fillSurahLists(){
+
+const surahs =
+[
+...new Map(
+quranData.map(
+x=>[
+x.sura_no,
+x.sura_name_ar
+]
+)
+).entries()
+];
+
+[
+"hifzSurah",
+"tasbeetSurah",
+"reviewSurah"
+]
+.forEach(id=>{
 
 const select =
 document.getElementById(id);
 
-list.forEach(name=>{
+surahs.forEach(([no,name])=>{
 
 const option =
 document.createElement("option");
 
-option.value=name;
-option.textContent=name;
+option.value = no;
+option.textContent = name;
 
 select.appendChild(option);
 
 });
 
+});
+
 }
+function getSurahName(suraNo){
 
-function getAya(
-surah,
-ayah
-){
-
-return quranData.find(
-x =>
-x.sura_name_ar===surah &&
-x.aya_no===ayah
+const aya =
+quranData.find(
+x => Number(x.sura_no) === Number(suraNo)
 );
 
+return aya
+? aya.sura_name_ar
+: '';
+
 }
 
-function getLastAyaInSurah(
-surah
+function getStartIndex(
+suraNo,
+ayaNo
 ){
 
-const ayat =
-quranData.filter(
-x=>x.sura_name_ar===surah
-);
+const key =
+`${suraNo}-${ayaNo}`;
 
-return ayat[ayat.length-1];
+return ayahIndexMap[key];
 
 }
 
-function calculateRange(
-surah,
-startAyah,
+function getAyaLines(aya){
+
+return (
+Number(aya.line_end)
+-
+Number(aya.line_start)
+) + 1;
+
+}
+
+function buildDailyRange(
+startIndex,
 faces
 ){
 
-const start =
-getAya(
-surah,
-startAyah
-);
+const targetLines =
+faces * LINES_PER_FACE;
 
-if(!start){
+let currentLines = 0;
 
-console.log(
-'لم يتم العثور على:',
-surah,
-startAyah
-);
+let endIndex = startIndex;
+
+while(
+endIndex < quranData.length
+){
+
+const aya =
+quranData[endIndex];
+
+currentLines +=
+getAyaLines(aya);
+
+if(
+currentLines >= targetLines
+){
+break;
+}
+
+endIndex++;
+
+}
+
+const startAya =
+quranData[startIndex];
+
+const endAya =
+quranData[endIndex];
 
 return {
-start:startAyah,
-end:startAyah
+
+startIndex,
+
+endIndex,
+
+nextIndex:
+Math.min(
+endIndex + 1,
+quranData.length - 1
+),
+
+startSura:
+startAya.sura_no,
+
+startSuraName:
+startAya.sura_name_ar,
+
+startAya:
+startAya.aya_no,
+
+endSura:
+endAya.sura_no,
+
+endSuraName:
+endAya.sura_name_ar,
+
+endAya:
+endAya.aya_no,
+
+lines:
+currentLines,
+
+faces
+
 };
 
 }
 
-const pagesToMove =
-faces / 2;
+function formatRangeText(range){
 
-const targetPage =
-start.page + pagesToMove;
+if(
+range.startSura ===
+range.endSura
+){
 
-const surahAyat =
-quranData.filter(
-x=>x.sura_name_ar===surah
+return `
+${range.startSuraName}
+<br>
+${range.startAya}
+-
+${range.endAya}
+`;
+
+}
+
+return `
+${range.startSuraName}
+${range.startAya}
+-
+${range.endSuraName}
+${range.endAya}
+`;
+
+}
+
+function generateTrackPlan(
+suraNo,
+ayaNo,
+faces,
+days
+){
+
+let currentIndex =
+getStartIndex(
+suraNo,
+ayaNo
 );
+
+if(
+currentIndex === undefined
+){
+
+alert(
+'لم يتم العثور على الآية'
+);
+
+return [];
+
+}
+
+const result = [];
+
+for(
+let day = 0;
+day < days;
+day++
+){
 
 const range =
-surahAyat.filter(
-x=>x.page <= targetPage
+buildDailyRange(
+currentIndex,
+faces
 );
 
-const lastAya =
-range[range.length-1];
+result.push(range);
 
-return {
+currentIndex =
+range.nextIndex;
 
-start:startAyah,
+if(
+currentIndex >=
+quranData.length - 1
+){
+break;
+}
 
-end:lastAya
-? lastAya.aya_no
-: getLastAyaInSurah(
-surah
-).aya_no
+}
 
-};
+return result;
 
 }
 
@@ -374,57 +537,60 @@ function generatePlan(){
 
 if(!quranData.length){
 
-alert("انتظر تحميل ملف القرآن");
+alert("لم يتم تحميل ملف القرآن");
 
 return;
 
 }
 
 const student =
-document.getElementById("student").value;
+document.getElementById("student").value || "طالب";
 
 const days =
 parseInt(
 document.getElementById("daysCount").value
 );
 
-const hifzSurah =
-document.getElementById("hifzSurah").value;
-
-let hifzAyah =
+const hifzPlan =
+generateTrackPlan(
+parseInt(
+document.getElementById("hifzSurah").value
+),
 parseInt(
 document.getElementById("hifzAyah").value
-);
-
-const hifzFaces =
+),
 parseFloat(
 document.getElementById("hifzFaces").value
+),
+days
 );
 
-const tasbeetSurah =
-document.getElementById("tasbeetSurah").value;
-
-let tasbeetAyah =
+const tasbeetPlan =
+generateTrackPlan(
+parseInt(
+document.getElementById("tasbeetSurah").value
+),
 parseInt(
 document.getElementById("tasbeetAyah").value
-);
-
-const tasbeetFaces =
+),
 parseFloat(
 document.getElementById("tasbeetFaces").value
+),
+days
 );
 
-const reviewSurah =
-document.getElementById("reviewSurah").value;
-
-let reviewAyah =
+const reviewPlan =
+generateTrackPlan(
+parseInt(
+document.getElementById("reviewSurah").value
+),
 parseInt(
 document.getElementById("reviewAyah").value
-);
-
-const reviewFaces =
+),
 parseFloat(
 document.getElementById("reviewFaces").value
+),
+days
 );
 
 const daysNames = [
@@ -437,113 +603,205 @@ const daysNames = [
 "السبت"
 ];
 
-let html=`
+let html = `
+
+<div id="planContent">
 
 <div class="summary">
-<h3>الخطة القرآنية</h3>
-<p>الطالب: ${student}</p>
+
+<h2>الخطة القرآنية</h2>
+
+<p>
+الطالب:
+<b>${student}</b>
+</p>
+
+<p>
+عدد الأيام:
+<b>${days}</b>
+</p>
+
 </div>
 
 <table>
 
 <thead>
+
 <tr>
+
 <th>اليوم</th>
+
 <th>الحفظ</th>
+<th>المقدار</th>
+
 <th>التثبيت</th>
+<th>المقدار</th>
+
 <th>المراجعة</th>
+<th>المقدار</th>
+
 </tr>
+
 </thead>
 
 <tbody>
+
 `;
 
 for(let i=0;i<days;i++){
 
-const hifz =
-calculateRange(
-hifzSurah,
-hifzAyah,
-hifzFaces
-);
+const h =
+hifzPlan[i];
 
-const tasbeet =
-calculateRange(
-tasbeetSurah,
-tasbeetAyah,
-tasbeetFaces
-);
+const t =
+tasbeetPlan[i];
 
-const review =
-calculateRange(
-reviewSurah,
-reviewAyah,
-reviewFaces
-);
+const r =
+reviewPlan[i];
 
-html+=`
+html += `
 
 <tr>
 
 <td>
-${daysNames[i%7]}
+${daysNames[i % 7]}
 </td>
 
 <td>
-${hifzSurah}
-<br>
-${hifz.start}
--
-${hifz.end}
+${formatRangeText(h)}
 </td>
 
 <td>
-${tasbeetSurah}
-<br>
-${tasbeet.start}
--
-${tasbeet.end}
+${h.faces} وجه
 </td>
 
 <td>
-${reviewSurah}
-<br>
-${review.start}
--
-${review.end}
+${formatRangeText(t)}
+</td>
+
+<td>
+${t.faces} وجه
+</td>
+
+<td>
+${formatRangeText(r)}
+</td>
+
+<td>
+${r.faces} وجه
 </td>
 
 </tr>
 
 `;
 
-hifzAyah =
-hifz.end + 1;
-
-tasbeetAyah =
-tasbeet.end + 1;
-
-reviewAyah =
-review.end + 1;
-
 }
 
 html += `
+
 </tbody>
+
 </table>
+
+<div class="summary">
+
+<h3>
+ملخص الخطة
+</h3>
+
+<p>
+الحفظ:
+${document.getElementById("hifzFaces").value}
+ وجه يومياً
+=
+${(
+parseFloat(
+document.getElementById("hifzFaces").value
+) * days
+)}
+ وجه
+</p>
+
+<p>
+التثبيت:
+${document.getElementById("tasbeetFaces").value}
+ وجه يومياً
+=
+${(
+parseFloat(
+document.getElementById("tasbeetFaces").value
+) * days
+)}
+ وجه
+</p>
+
+<p>
+المراجعة:
+${document.getElementById("reviewFaces").value}
+ وجه يومياً
+=
+${(
+parseFloat(
+document.getElementById("reviewFaces").value
+) * days
+)}
+ وجه
+</p>
+
+</div>
+
+</div>
+
 `;
 
 document.getElementById("result").innerHTML =
 html;
 
+document.getElementById("pdfBtn").style.display =
+"block";
+
 }
 
+document.getElementById("pdfBtn")
+.addEventListener(
+"click",
+function(){
+
+const element =
+document.getElementById("planContent");
+
+const opt = {
+
+margin:0.5,
+
+filename:
+'الخطة_القرآنية.pdf',
+
+image:{
+type:'jpeg',
+quality:1
+},
+
+html2canvas:{
+scale:2
+},
+
+jsPDF:{
+unit:'in',
+format:'a4',
+orientation:'portrait'
+}
+
+};
+
+html2pdf()
+.set(opt)
+.from(element)
+.save();
+
+}
+);
 </script>
 
 </body>
 </html>
-
-
-
-
-
