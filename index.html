@@ -176,7 +176,7 @@ margin-top:15px;
 </div>
 
 <div>
-<label>عدد الأوجه يومياً</label>
+<label>عدد الصفحات يومياً</label>
 <input id="hifzFaces" type="number" step="0.5" value="1">
 </div>
 
@@ -203,7 +203,7 @@ margin-top:15px;
 </div>
 
 <div>
-<label>عدد الأوجه يومياً</label>
+<label>عدد الصفحات يومياً</label>
 <input id="tasbeetFaces" type="number" step="0.5" value="5">
 </div>
 
@@ -230,7 +230,7 @@ margin-top:15px;
 </div>
 
 <div>
-<label>عدد الأوجه يومياً</label>
+<label>عدد الصفحات يومياً</label>
 <input id="reviewFaces" type="number" step="0.5" value="10">
 </div>
 
@@ -260,7 +260,7 @@ let quranData = [];
 let ayahIndexMap = {};
 
 const LINES_PER_PAGE = 15;
-const LINES_PER_FACE = 7.5;
+const PAGE_COUNT_MODE = true;
 
 fetch("quran-data.json")
 .then(r=>r.json())
@@ -374,38 +374,39 @@ Number(aya.line_start)
 
 function buildDailyRange(
 startIndex,
-faces
+pages
 ){
-
-const targetLines =
-faces * LINES_PER_FACE;
-
-let currentLines = 0;
-
-let endIndex = startIndex;
-
-while(
-endIndex < quranData.length
-){
-
-const aya =
-quranData[endIndex];
-
-currentLines +=
-getAyaLines(aya);
-
-if(
-currentLines >= targetLines
-){
-break;
-}
-
-endIndex++;
-
-}
 
 const startAya =
 quranData[startIndex];
+
+const startPage =
+Number(startAya.page);
+
+const targetPage =
+startPage + pages - 1;
+
+let endIndex =
+startIndex;
+
+for(
+let i=startIndex;
+i<quranData.length;
+i++
+){
+
+const aya =
+quranData[i];
+
+if(
+Number(aya.page) <= targetPage
+){
+endIndex = i;
+}else{
+break;
+}
+
+}
 
 const endAya =
 quranData[endIndex];
@@ -413,7 +414,6 @@ quranData[endIndex];
 return {
 
 startIndex,
-
 endIndex,
 
 nextIndex:
@@ -440,10 +440,7 @@ endAya.sura_name_ar,
 endAya:
 endAya.aya_no,
 
-lines:
-currentLines,
-
-faces
+pages
 
 };
 
@@ -479,7 +476,7 @@ ${range.endAya}
 function generateTrackPlan(
 suraNo,
 ayaNo,
-faces,
+pages,
 days
 ){
 
@@ -512,7 +509,7 @@ day++
 const range =
 buildDailyRange(
 currentIndex,
-faces
+pages
 );
 
 result.push(range);
@@ -672,7 +669,7 @@ ${formatRangeText(h)}
 </td>
 
 <td>
-${h.faces} وجه
+${h.pages} صفحة
 </td>
 
 <td>
@@ -680,7 +677,7 @@ ${formatRangeText(t)}
 </td>
 
 <td>
-${t.faces} وجه
+${t.pages} صفحة
 </td>
 
 <td>
@@ -688,7 +685,7 @@ ${formatRangeText(r)}
 </td>
 
 <td>
-${r.faces} وجه
+${r.pages} صفحة
 </td>
 
 </tr>
@@ -805,3 +802,7 @@ html2pdf()
 
 </body>
 </html>
+
+
+
+
